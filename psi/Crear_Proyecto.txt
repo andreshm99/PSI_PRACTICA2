@@ -1,0 +1,640 @@
+.---------------------------.
+|   CREAR PROYECTO DJANGO   |
+·---------------------------·
+
+1) Ejecutar el comando:  django-admin.py startproject proyecto
+						     ^^^^^^^^^
+						   NOMBRE DEL PROYECTO
+-> cd proyecto
+2) Ejecutamos dentro de la carpeta del proyecto: python3 manage.py startapp aplicacion
+									   ^^^^^^^^^^^^
+									NOMBRE DE LA APLICACION
+
+3) Ir al settings de la carpeta del proyecto, y añadir lo siguiente:
+
+	INSTALLED_APPS = [
+    		'django.contrib.admin',
+    		'django.contrib.auth',
+    		'django.contrib.contenttypes',
+    		'django.contrib.sessions',
+    		'django.contrib.messages',
+    		'django.contrib.staticfiles',
+    		'aplicacion',   <--------------------- NOMBRE DE LA APLICACION
+	]
+
+4) Comprobar que el servidor se lanza bien con: python3 manage.py runserver 	(IGNORAR LAS MIGRACIONES)
+
+
+.-------------------------------.
+|   CREAR UNA VISTA EN DJANGO   |
+·-------------------------------·
+
+1) Añade una función al fichero views.py de este estilo:
+
+	def index(request):
+    		return HttpResponse("Hola, este es tu examen")
+
+2) Añade al fichero urls.py (IMPORTANTE! El que está a la altura de settings.py):
+
+	from aplicacion import views  <---------------------
+
+	urlpatterns = [
+    		path('', views.index, name='index'),  <---------------------
+    		path('admin/', admin.site.urls),
+	]
+
+
+.-------------------------------.
+|   MAPEAR URLS DEL PROYECTO    |
+·-------------------------------·
+
+1) Modificar el mismo fichero de urls.py de antes añadiendo:
+
+	from django.urls import include   <---- IMPORTANTE
+	from aplicacion import views
+
+	urlpatterns = [
+    		path('', views.index, name='index'),
+		path('aplicacion/', include('aplicacion.urls')), <------------ A CONTINUACION CREAMOS UN FICHERO URLS EN LA APP
+    		path('admin/', admin.site.urls),
+	]
+
+
+2) Crear el fichero urls.py en la carpeta de la aplicación:
+
+	from django.urls import path
+	from aplicacion import views
+
+	urlpatterns = [
+		path('', views.index, name='index'),
+	]
+
+
+.-------------------------------.
+|    USO DE TEMPLATES DJANGO    |
+·-------------------------------·
+
+1) Crear la carpeta /templates/aplicacion/ a la altura del manage.py
+
+2) Añadir lo siguiente al settings.py:
+
+	TEMPLATES = [
+    		{
+        		'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        		'DIRS': [TEMPLATE_DIR, ],					<------ MACRO TEMPLATE_DIR
+        		'APP_DIRS': True,
+        		'OPTIONS': {
+            			'context_processors': [
+                			'django.template.context_processors.debug',
+                			'django.template.context_processors.request',
+                			'django.contrib.auth.context_processors.auth',
+                			'django.contrib.messages.context_processors.messages',
+            			],
+        		},
+    		},
+	]
+
+
+3)Añadir la siguiente variable: 	TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+
+
+4)Crear un template index.html:
+		<!DOCTYPE html>
+		<html>
+    			<head>
+        			<title>Aplicacion</title>
+    			</head>
+    			<body>
+        			<h1>Bienvenido</h1>
+        			<div>
+            				<strong>{{ boldmessage }}</strong><br/>
+        			</div>
+        			<div>
+            				<a href="{% url 'recetas' %}">recetas</a><br/>
+        				</div>	 ^^^^^^^^^^^^^^^^^^
+    			</body>	         	  "recetas" ES EL TEMPLATE QUE NOS DAN EN EL EXAMEN A AÑADIR
+		</html>
+
+
+5)Modificar el views.py:
+	def index(request):
+    		context_dict = {'boldmessage': 'Este es el index del examen'}
+    		return render(request, 'aplicacion/index.html', context=context_dict)
+
+
+.------------------------------------.
+|    USO DE STATIC Y MEDIA DJANGO    |
+·------------------------------------·
+
+1) Crear carpeta /static/images/ a la misma altura que "templates"
+	1.1) Añadir alguna imagen a esta carpeta, para lo de heroku posteriormente
+
+2) Añadir estas lineas al settings: 	STATIC_DIR = os.path.join(BASE_DIR, 'static')
+					STATICFILES_DIRS = [STATIC_DIR, ]		<---- ESTA MEJOR ABAJO DEL TODO
+
+
+¡NOTA!: Si hubiera que añadir alguna ruta del static, añadir al html esto:  {% load staticfiles %}
+
+
+3) Crear carpeta /media/ a la misma altura que "templates"
+
+4) Añadir estas lineas al settings: 	MEDIA_DIR = os.path.join(BASE_DIR, 'media')
+					MEDIA_ROOT = MEDIA_DIR				<---- ESTAS DOS MEJOR ABAJO
+					MEDIA_URL = '/media/'
+
+5) Añadir lo siguiente también al settings:
+
+	TEMPLATES = [
+    		{
+        		'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        		'DIRS': [TEMPLATE_DIR, ],
+        		'APP_DIRS': True,
+        		'OPTIONS': {
+            			'context_processors': [
+                			'django.template.context_processors.debug',
+               				'django.template.context_processors.request',
+                			'django.contrib.auth.context_processors.auth',
+                			'django.contrib.messages.context_processors.messages',
+                			'django.template.context_processors.media',    <--------- ESTA LINEA
+            			],
+    			},
+    		},
+	]
+
+6) Añadir al urls.py del proyecto: 
+
+	from django.conf import settings
+	from django.conf.urls.static import static
+
+	(...)
+
+	urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+
+
+.------------------------------------------.
+|    BASE DE DATOS PARA HEROKU Y DJANGO    |
+·------------------------------------------·
+
+1) Poner lo siguiente en settings de la carpeta del proyecto:
+	DATABASES = {}
+	if os.getenv('SQLITE', False):
+		DATABASES['default'] = {
+		'ENGINE': 'django.db.backends.sqlite3',
+		'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+		}
+	else:
+		import dj_database_url
+		DATABASES['default'] = dj_database_url.config(default='postgres://alumnodb:alumnodb@localhost:5432/examen')
+		                                                                                                   ^^^^^^^^^
+		                                                                                                 NombreBBDD
+	STATIC_URL = '/static/'
+	STATIC_ROOT = os.path.join(BASE_DIR, 'staticHeroku')    <--- solo cambiar esto
+	STATICFILES_DIRS = [STATIC_DIR, ]
+
+2) Crear base de datos (postgres.txt)
+-----------------------------------------------------------------------------------------------------
+·-----------------·
+| CREATE DATABASE |
+·-----------------·
+
+1) sudo su - postgres
+
+2) psql
+
+3) CREATE DATABASE examen;
+                   ^^^^^^
+                   NOMBRE
+                    BdD
+
+(*) Si no tienes creado el usuario alumnodb:
+	3.1) CREATE USER alumnodb WITH PASSWORD 'alumnodb';
+
+	3.2) ALTER ROLE alumnodb SET client_encoding TO 'utf8';
+
+	3.3) ALTER ROLE alumnodb SET default_transaction_isolation TO 'read commited';
+
+	3.4) ALTER ROLE alumnodb SET timezone TO 'UTC';
+
+4) GRANT ALL PRIVILEGES ON DATABASE examen TO alumnodb;
+                                    ^^^^^^
+                                    NOMBRE
+                                     BdD
+
+(*) Para salir:
+	Ctrl + shift + a + d (x2)
+
+-----------------------------------------------------------------------------------------------------
+
+3) python3 manage.py makemigrations    <--- SI NO ESTA EL MODELS ESTO NO DEBERIA CAMBIAR NADA
+   python3 manage.py migrate
+
+4) python3 manage.py runserver  <-------- COMPROBAR QUE YA NO HAY FALLOS DE MIGRACIONES
+
+** POSTERIORMENTE CONTINUAMOS CON LO DE HEROKU **
+
+
+.-------------------------------------------.
+|    INTERFAZ DE ADMINISTRADOR DE DJANGO    |
+·-------------------------------------------·
+
+1) Hacer el models.py en base a lo que ponga en el examen
+	* models.CharField(max_length=128, unique=True)*   <----- Por si me hace falta en el examen
+
+
+from django.db import models
+
+class Paciente(models.Model):
+	nombreP=models.CharField(unique=True, blank=False, max_length=128)
+
+	def save(self, *args, **kwargs):
+		super(Paciente, self).save(*args, **kwargs)
+
+	class Meta:
+		verbose_name_plural = 'Pacientes'
+
+
+class Medico(models.Model):
+	nombreM=models.CharField(unique=True, blank=False, max_length=128)
+
+	def save(self, *args, **kwargs):
+		super(Medico, self).save(*args, **kwargs)
+
+	class Meta:
+		verbose_name_plural = 'Medicos'
+
+
+class Receta(models.Model):
+	medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
+	paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+
+	def save(self, *args, **kwargs):
+		super(Receta, self).save(*args, **kwargs)
+
+	class Meta:
+		verbose_name_plural = 'Recetas'
+
+
+
+TENER EN CUENTA EL STR PARA EL ADMIN:
+  def __str__(self):
+        return self.groupName
+
+
+2) python3 manage.py migrate  <------ ES PROBABLE QUE DE ERROR, ES POR HABER CREADO EL MODELS ANTES, IGNORAR!!!
+
+3) python3 manage.py createsuperuser
+
+4) python3 manage.py makemigrations aplicacion
+
+5) python3 manage.py migrate  <------ ESTE TIENE QUE DAR OK
+
+
+** EN ESTE PUNTO, PODEMOS ACCEDER A  http://127.0.0.1:8000/admin/  Y VER LA INTERFAZ DE ADMIN, PERO FALTA AÑADIR LOS MODELOS **
+
+6) Añadir al fichero admin.py:
+	
+	from django.contrib import admin
+	from aplicacion.models import Paciente, Medico, Receta	| 
+								| Paciente, Medico y Receta son los 
+	admin.site.register(Paciente)				> modelos de nuestro examen, estos 3 son 
+	admin.site.register(Medico)				| del examen de prueba.
+	admin.site.register(Receta)				|
+
+
+** EN ESTE PUNTO, PODEMOS ACCEDER A  http://127.0.0.1:8000/admin/  Y VER LA INTERFAZ DE ADMIN CON LOS MODELOS **
+
+7) Por si hiciera falta adaptar el plural de algun modelo, que no creo, meter en el modelo:
+
+	class Meta:
+		verbose_name_plural = 'Categories'
+
+
+.------------------------------------------------------.
+|    HTML A INCLUIR PARA CORREGIR EL ERROR DEL INDEX   |
+·------------------------------------------------------·
+
+1) Crear el html con el código proporcionado
+
+2) En urls.py de la aplicación, meter:       
+
+	path('', views.index, name='index'),
+	path('index/', views.index, name='index'),
+	path('recetas/', views.recetas, name='recetas'),
+	      ^^^^^^^^   ^^^^^^^^^^^^^
+	     	url       funcion views
+
+3) Hacer función del views en base al enunciado
+
+	OJO con importar los models que hagan falta:  from aplicacion.models import Receta
+	
+  Y copiar de momento esto:
+
+	def recetas(request):
+		context_dict = {'boldmessage': 'recetass'}
+		return render(request, 'aplicacion/receta.html', context=context_dict)
+                                                   ^^^^^^
+.---------------------------.
+|    POPULATE PARA LA APP   |
+.---------------------------.
+
+1) Crear fichero a la altura de manage.py
+
+2) Copiar este codigo y cambiarlo en base al enunciado:
+
+import django
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE',
+                      'proyecto.settings')
+
+django.setup()
+
+from django.contrib.auth.models import User
+from aplicacion.models import Movie, ProductionCompany, Produced
+
+movie1 = Movie.objects.create(id=1, nombreM='movie1')
+movie2 = Movie.objects.create(id=2, nombreM='movie2')
+movie3 = Movie.objects.create(id=3, nombreM='movie3')
+movie4 = Movie.objects.create(id=4, nombreM='movie4')
+
+productionCompany1 = ProductionCompany.objects.create(id=1, nombreP='productionCompany1')
+productionCompany2 = ProductionCompany.objects.create(id=2, nombreP='productionCompany2')
+
+Produced.objects.create(id=1, movie=movie1, productionCompany=productionCompany1, cost=100)
+Produced.objects.create(id=2, movie=movie2, productionCompany=productionCompany1, cost=100)
+Produced.objects.create(id=3, movie=movie1, productionCompany=productionCompany2, cost=100)
+Produced.objects.create(id=4, movie=movie2, productionCompany=productionCompany2, cost=100)
+Produced.objects.create(id=5, movie=movie3, productionCompany=productionCompany2, cost=100)
+
+.-----------------------------------.
+| OTRO SCRIPT POPULATE PARA LA APP  |
+·-----------------------------------·
+
+1) Crear fichero a la altura de manage.py
+
+2) (Probablemente el paso más rudo de todo el fichero) Copia y pega esto, y ve cambiando cosas:
+-----------------------------------------------------------------------------------------------
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE',
+                      'proyecto.settings')
+
+import django
+django.setup()
+from aplicacion.models import Paciente, Medico, Receta
+
+
+def populate():
+    # First, we will create lists of dictionaries containing the pages
+    # we want to add into each category.
+    # Then we will create a dictionary of dictionaries for our categories.
+    # This might seem a little bit confusing, but it allows us to iterate
+    # through each data structure, and add the data to our models.
+    pacientes = [
+        {'nombreP': 'paciente1'},
+        {'nombreP': 'paciente2'}]
+
+    medicos = [
+        {'nombreM': 'medico1'},
+        {'nombreM': 'medico2'},
+        {'nombreM': 'medico3'},
+        {'nombreM': 'medico4'}]
+
+    recetas = [
+        {'medico': '1',
+            'paciente': '1'},
+        {'medico': '2',
+            'paciente': '1'},
+        {'medico': '1',
+            'paciente': '2'},
+        {'medico': '2',
+            'paciente': '2'},
+        {'medico': '3',
+            'paciente': '2'}]
+
+
+    # If you want to add more categories or pages,
+    # add them to the dictionaries above.
+    # The code below goes through the cats dictionary, then adds each category,
+    # and then adds all the associated pages for that category.
+
+    for paciente in pacientes:
+        add_paciente(paciente['nombreP'])
+
+    for medico in medicos:
+        add_medico(medico['nombreM'])
+
+    # Print out the categories we have added.
+    for receta in recetas:
+        add_receta(receta['medico'], receta['paciente'])
+
+
+def add_paciente(nombre):
+    p = Paciente.objects.get_or_create(nombreP=nombre)[0]
+    p.save()
+
+def add_medico(nombre):
+    m = Medico.objects.get_or_create(nombreM=nombre)[0]
+    m.save()
+
+def add_receta(medico, paciente):
+    m = Receta.objects.get_or_create(medico_id=medico, paciente_id=paciente)[0]
+    m.save()
+
+
+# Start execution here!
+if __name__ == '__main__':
+    print('Lanzando el fichero poblar.py...')
+    populate()
+
+-----------------------------------------------------------------------------------------------
+
+ENHORABUENA, TIENES UN 5 XD EJECUTA Y COMRPUEBA QUE FUNCIONA TODO COMO DICEN EN LA NORMATIVA
+
+
+.--------------.
+|    HEROKU    |
+·--------------·
+
+1) Copiar los ficheros de otras veces: Procfile, runtime.txt y requirements.txt
+	(!) Pero CAMBIAR en el archivo Procfile:
+		web: gunicorn ratonGato.wsgi --log-file -
+		              ^^^^^^^^^
+		               Nombre
+		              proyecto
+
+2) Poner lo siguiente en settings de la carpeta del proyecto:
+	DATABASES = {}
+	if os.getenv('SQLITE', False):
+		DATABASES['default'] = {
+		'ENGINE': 'django.db.backends.sqlite3',
+		'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+		}
+	else:
+		import dj_database_url
+		DATABASES['default'] = dj_database_url.config(default='postgres://alumnodb:alumnodb@localhost:5432/ratongato')
+		                                                                                                   ^^^^^^^^^
+		                                                                                                   Nombre BdB
+	STATIC_URL = '/static/'                              |
+	STATIC_ROOT = os.path.join(BASE_DIR, 'staticHeroku')  > A lo mejor ya está puesto ABAJO, al final.
+	STATICFILES_DIRS = [STATIC_DIR, ]                    |
+
+3) Añadir al fichero urls de la carpeta del proyecto: (!) A lo mejor ya está puesto.
+	from django.conf import settings
+	from django.conf.urls.static import static
+	(...)
+	urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+4) wsgi de la carpeta del proyecto debe quedar así:
+	import os
+	from django.core.wsgi import get_wsgi_application
+	from dj_static import Cling
+	os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ratonGato.settings')
+	                                                 ^^^^^^^^^
+	                                               NombreProyecto
+	application = Cling(get_wsgi_application())
+
+5) El .git debe estar a la misma altura que la carpeta del proyecto, Procfile, runtime.txt, requirements.txt, manage.py...
+
+6) Creamos un .gitignote a la misma altura que el .git y metemos lo siguiente:
+	*.pyc
+	staticfiles
+	uploads
+
+7) Subimos todo a git (git add ., git commit -m ".", git push).
+
+8) Meter el comando:
+	heroku login
+
+   8.1) Si no tienes una cuenta de usuario, registrarte en https://signup.heroku.com/identity
+
+9) Meter el comando:
+	heroku create
+   Y nos sale POR EJEMPLO:
+	Creating app... done, ⬢ fierce-reaches-65016
+	https://fierce-reaches-65016.herokuapp.com/ | https://git.heroku.com/fierce-reaches-65016.git
+	        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		         SÓLO COPIAR ESO
+
+10) Meter en settings de la carpeta del proyecto (basándonos en el ejemplo de arriba):
+	ALLOWED_HOSTS = [u'fierce-reaches-65016.herokuapp.com', u'localhost', u'127.0.0.1']
+	                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	                               PEGAR AQUÍ
+
+11) Subimos todo a git (git add ., git commit -m ".", git push).
+
+
+->heroku stack:set heroku-18
+12) Metemos el siguiente comando:
+	git push heroku main
+
+	(!) Cuidado con las tabulaciones al copiar y pegar.
+	(!) Asegurarse que la carpeta static está creada y contiene algo para que así se suba.
+
+13) Para arrancar la app que ya está en Heroku hacemos el siguiente paso:
+	heroku ps:scale web=1
+
+14) Ejecutar el comando de las migraciones:
+	heroku run python3 manage.py migrate
+
+	ó
+
+	heroku run bash
+	python3 manage.py migrate
+
+	(Si queremos crear las migraciones usar: python3 manage.py makemigrations)
+
+15) Para comprobar si la app se está ejecutando correctamente podemos usar el siguiente comando:
+	heroku open
+
+	ó
+
+	copiar el link de antes (fierce-reaches-65016.herokuapp.com) que está en el settings de la carpeta del proyecto y pegarlo en el navegador.
+
+    15.1) En caso de que no funcione podemos usar el siguiente comando:
+    		heroku logs --tail
+
+(!) Asegurarnos de que nuestra aplicación en heroku no está desplegada en modo debug. Para ello, poner lo siguiente en settings de la carpeta del proyecto:
+	DEBUG = False
+
+(*) Si queremos ejecutar los tests (como usa la base de datos sqlite) debemos ejecutar el siguiente comando:
+	heroku config:set SQLITE=1
+
+
+	y una vez finalizada la ejecución de los tests:
+		heroku config:unset SQLITE
+
+
+
+(**) Si queremos crear un superusuario (por ejemplo para usar lo de admin):
+	heroku run python3 manage.py createsuperuser
+
+	ó
+
+	heroku run bash
+	python3 manage.py createsuperuser
+
+(***) Si queremos limpiar la base de datos:
+	heroku pg:reset --confirm fierce-reaches-65016
+	                          ^^^^^^^^^^^^^^^^^^^^
+	                               NOMBRE APP
+
+	y luego volver a hacer las migraciones
+
+
+(****) Si queremos pasar el poulate:
+	heroku run python3 poblar.py
+
+
+
+
+.----------------------.
+|    TEST A INCLUIR    |
+·----------------------·
+
+1) Fijarse en el que he hecho para el examen anterior
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
