@@ -1,2 +1,0 @@
-# locallibrary
-Aplicacion locallibrary
