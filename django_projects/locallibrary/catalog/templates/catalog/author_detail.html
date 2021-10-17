@@ -5,7 +5,7 @@
 {% extends "base_generic.html" %}
 
 {% block content %}
-  <h1>Author: {{ author.last_name }} {{ author.first_name }}</h1>
+  <h1>Author: {{ author.last_name }}, {{ author.first_name }}</h1>
 
   <p>{{ author.date_of_birth }} <strong> - </strong>
     {% if author.date_of_death %} 
